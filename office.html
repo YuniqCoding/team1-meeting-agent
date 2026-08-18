@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>회의록 처리팀 사무실</title>
+<style>
+  :root {
+    color-scheme: light;
+    --wood:  #9a6631;
+    --wall:  #e6e4de;
+    --ink:   #1c1c1e;
+    --plate: #2b3a5c;
+    --cream: #f4f1e8;
+    --ok:    #2f7a4d;
+    --busy:  #c98a3a;
+    --idle:  #6b6b70;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 28px 16px 60px;
+    background: #f7f6f3;
+    color: var(--ink);
+    font-family: "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.65;
+  }
+
+  .wrap { max-width: 1100px; margin: 0 auto; }
+
+  .notice {
+    border: 2px solid var(--ink);
+    background: #fffbe6;
+    padding: 10px 14px;
+    margin: 0 0 20px;
+    font-size: 15px;
+  }
+  .notice > b { display: block; }
+  .notice > span { color: #55555c; font-size: 14px; }
+
+  h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.5px; }
+  .sub { margin: 0 0 18px; color: #55555c; font-size: 15px; }
+
+  /* ---------- 조작 단추 ---------- */
+
+  .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  button {
+    font-family: inherit; font-size: 16px; font-weight: 700;
+    padding: 10px 22px; cursor: pointer;
+    border: 2px solid var(--ink); background: var(--ink); color: #fff;
+    box-shadow: 3px 3px 0 rgba(0,0,0,.25);
+  }
+  button.ghost { background: #fff; color: var(--ink); }
+  button:hover:not(:disabled) { transform: translate(1px, 1px); box-shadow: 2px 2px 0 rgba(0,0,0,.25); }
+  button:disabled { opacity: .45; cursor: default; box-shadow: none; }
+  .tick { font-size: 14px; color: #55555c; }
+
+  /* ---------- 사무실 장면 ---------- */
+
+  .scene-scroll { overflow-x: auto; padding-bottom: 8px; }
+
+  .office {
+    position: relative;
+    min-width: 1060px;
+    border: 3px solid var(--ink);
+    background-color: var(--wood);
+    background-image:
+      repeating-linear-gradient(180deg, rgba(0,0,0,.13) 0 2px, transparent 2px 44px),
+      repeating-linear-gradient(90deg,  rgba(0,0,0,.09) 0 2px, transparent 2px 88px);
+    padding-bottom: 26px;
+  }
+
+  .wall { height: 46px; background: var(--wall); border-bottom: 4px solid #b9b6ad; }
+
+  .row { display: flex; align-items: flex-start; justify-content: center; padding: 22px 16px 0; }
+
+  /* 대기 중에는 모니터가 꺼져 있고, 일을 시작하면 켜집니다 */
+  .station {
+    width: 176px; flex: 0 0 auto; text-align: center; position: relative;
+    --screen: #23262e;
+  }
+  .station.working, .station.done { --screen: var(--screen-on); }
+
+  .pixel { display: block; margin: 0 auto; image-rendering: pixelated; }
+  .desk-art { width: 124px; height: 85px; position: relative; z-index: 1; }
+
+  .desk-wrap { position: relative; }
+  .glow {
+    position: absolute; left: 50%; top: 4px; width: 62px; height: 26px;
+    transform: translateX(-50%); pointer-events: none;
+    background: #fff; opacity: 0; z-index: 2; mix-blend-mode: overlay;
+  }
+  .station.working .glow { animation: flicker .45s steps(2, end) infinite; }
+  @keyframes flicker { 0%, 60% { opacity: 0 } 61%, 100% { opacity: .5 } }
+
+  /* 의자에 앉은 자리 - 의자 등받이가 다리를 가려서 앉은 모습이 됩니다 */
+  .seat { position: relative; width: 60px; height: 88px; margin: -2px auto 0; }
+  .chair {
+    position: absolute; left: 50%; bottom: 4px; transform: translateX(-50%);
+    width: 50px; height: 38px; z-index: 3; image-rendering: pixelated;
+  }
+  .worker-art {
+    position: absolute; left: 50%; bottom: 18px; margin-left: -27px;
+    width: 54px; height: 74px; z-index: 2;
+  }
+
+  /* 명패 */
+  .plate {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--plate); color: #fff;
+    border: 2px solid #16203a; box-shadow: 3px 3px 0 rgba(0,0,0,.35);
+    padding: 4px 10px; margin: 6px 0 2px;
+    font-size: 15px; font-weight: 700; letter-spacing: .5px;
+    white-space: nowrap;
+  }
+  .plate .state { font-weight: 400; font-size: 13px; color: #9fb0d4; }
+  .station.working .plate { background: #7a4e12; border-color: #442a06; }
+  .station.working .plate .state { color: #ffd89a; }
+  .station.done .plate { background: #1f5236; border-color: #123120; }
+  .station.done .plate .state { color: #a8e0c0; }
+
+  /* 캐릭터 움직임 : 앉아 있다가 → 서류가 오면 자세를 세우고 → 타자를 칩니다 */
+  .worker-art { animation: sit-breathe 3.4s ease-in-out infinite; }
+  @keyframes sit-breathe { 0%, 100% { transform: translateY(6px) } 50% { transform: translateY(5px) } }
+
+  .station.receive .worker-art { animation: stand-up .45s ease-out 1 forwards; }
+  @keyframes stand-up {
+    0%   { transform: translateY(6px) }
+    45%  { transform: translateY(-6px) }
+    100% { transform: translateY(0) }
+  }
+
+  .station.working .worker-art { animation: work-bob .32s ease-in-out infinite alternate; }
+  @keyframes work-bob { from { transform: translateY(0) } to { transform: translateY(-3px) } }
+
+  .station.done .worker-art { animation: sit-back .5s ease-out 1 forwards; }
+  @keyframes sit-back { from { transform: translateY(0) } to { transform: translateY(4px) } }
+
+  .arm { transform-box: fill-box; transform-origin: center; }
+  .station.working .arm-l { animation: arm-a .26s infinite alternate; }
+  .station.working .arm-r { animation: arm-b .26s infinite alternate; }
+  @keyframes arm-a { from { transform: translateY(0) }    to { transform: translateY(1.2px) } }
+  @keyframes arm-b { from { transform: translateY(1.2px) } to { transform: translateY(0) } }
+
+  /* 말풍선 */
+  .bubble {
+    position: absolute; left: 50%; top: 122px; transform: translateX(-50%);
+    background: #fff; border: 2px solid var(--ink); box-shadow: 2px 2px 0 rgba(0,0,0,.3);
+    padding: 2px 8px; font-size: 13px; font-weight: 700; white-space: nowrap;
+    opacity: 0; transition: opacity .2s; z-index: 5;
+  }
+  .station.working .bubble { opacity: 1; }
+  .bubble .dot { animation: dots 1s steps(4, end) infinite; }
+  @keyframes dots { 0% { opacity: .2 } 50% { opacity: 1 } 100% { opacity: .2 } }
+
+  /* 카드 */
+  .card {
+    margin: 10px 6px 0; padding: 10px 12px 12px; text-align: left;
+    background: rgba(20,14,8,.82); border: 2px solid #16100a;
+    box-shadow: 3px 3px 0 rgba(0,0,0,.3); color: var(--cream);
+  }
+  .card .slot { font-size: 12px; letter-spacing: 1px; color: #d7b98d; text-transform: uppercase; }
+  .card .job  { font-size: 14px; margin: 4px 0 8px; line-height: 1.5; }
+  .card .who  { font-size: 13px; color: #cfc8bb; }
+
+  /* 배지 두 줄 : 위는 폴더에 결과 파일이 있는지, 아래는 지금 흐름의 진행 상태 */
+  .badges { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .badges .tag { font-size: 11px; color: #9a9082; letter-spacing: 1px; }
+  .badges .fname { font-size: 11px; color: #8a8377; }
+
+  .file {
+    display: inline-block; padding: 2px 8px;
+    font-size: 13px; font-weight: 700; color: #fff; border: 2px solid #16100a;
+  }
+  .file.has  { background: var(--ok); }
+  .file.none { background: var(--idle); }
+
+  .status {
+    display: inline-block; padding: 2px 8px;
+    font-size: 13px; font-weight: 700; color: #fff; border: 2px solid #16100a;
+    background: var(--idle);
+  }
+  .station.working .status { background: var(--busy); }
+  .station.done    .status { background: var(--ok); }
+
+  .io { margin-top: 8px; font-size: 12px; line-height: 1.55; color: #bfb5a4; min-height: 34px; }
+  .io b { color: #e8dcc6; }
+
+  .rule {
+    margin-top: 10px; padding-top: 8px; border-top: 1px dashed #6b5b45;
+    font-size: 12px; line-height: 1.5; color: #bfb5a4;
+  }
+  .rule b { color: #e8dcc6; font-weight: 700; }
+
+  /* 화살표 */
+  .arrow { flex: 0 0 auto; width: 36px; align-self: flex-start; margin-top: 112px; }
+  .arrow svg { display: block; width: 36px; height: 22px; image-rendering: pixelated; opacity: .55; }
+  .arrow.lit svg { opacity: 1; animation: slide .6s ease-in-out 2; }
+  @keyframes slide { 0%, 100% { transform: translateX(0) } 50% { transform: translateX(5px) } }
+
+  /* 재료함 / 결과함 */
+  .bin { width: 84px; flex: 0 0 auto; text-align: center; align-self: flex-start; margin-top: 40px; }
+  .bin svg { width: 62px; height: 62px; image-rendering: pixelated; display: block; margin: 0 auto; }
+  .bin .label {
+    display: inline-block; margin-top: 4px; padding: 2px 6px; font-size: 12px; font-weight: 700;
+    background: rgba(20,14,8,.82); color: var(--cream); border: 2px solid #16100a;
+  }
+  .bin.filled .label { background: var(--ok); }
+
+  /* 움직이는 서류 */
+  .packet {
+    position: absolute; left: 0; top: 0; width: 26px; height: 32px;
+    image-rendering: pixelated; z-index: 6; opacity: 0; pointer-events: none;
+    transition: transform .85s ease-in-out, opacity .25s;
+  }
+
+  /* ---------- 흐름 기록 ---------- */
+
+  .log {
+    margin-top: 22px; border: 2px solid var(--ink); background: #14110d; color: #ddd6c8;
+    padding: 14px 16px; font-size: 13.5px; line-height: 1.75;
+    font-family: Consolas, "D2Coding", monospace; min-height: 96px;
+    white-space: pre-wrap; overflow-x: auto;
+  }
+  .log .head { color: #ffd89a; font-weight: 700; }
+  .log .fin  { color: #8fe0ac; font-weight: 700; }
+  .log .dim  { color: #8a8377; }
+
+  .foot { margin-top: 22px; border-top: 1px solid #d8d5cd; padding-top: 16px; font-size: 14px; color: #55555c; }
+  .foot ul { padding-left: 20px; margin: 8px 0 0; }
+  .foot code { background: #ecebe6; padding: 1px 5px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .worker-art, .station.working .worker-art,
+    .station.working .arm-l, .station.working .arm-r,
+    .station.working .glow, .arrow.lit svg { animation: none; }
+    .packet { transition: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="notice">
+    <b>연습용 화면 - 아직 여기서 일을 시킬 수는 없습니다.</b>
+    <span>움직이는 것은 <b>미리 넣어둔 결과</b>를 순서대로 보여주는 것입니다. 담당자를 실제로 부르는 건 다음 주에 붙입니다.</span>
+  </p>
+
+  <h1>회의록 처리팀 사무실</h1>
+  <p class="sub">평소에는 네 명 다 자리에 앉아 있습니다. 단추를 누르면 재료가 첫 칸부터 흘러가고, 서류를 받은 담당자만 자세를 세우고 일합니다.</p>
+
+  <div class="controls">
+    <button id="run-btn" type="button">한 바퀴 돌리기</button>
+    <button id="reset-btn" type="button" class="ghost">처음으로</button>
+    <span class="tick" id="tick">대기 중 - 모두 자리에 앉아 있고, 재료는 재료함에 있습니다</span>
+  </div>
+
+  <div class="scene-scroll">
+    <div class="office" id="office">
+
+      <!-- 픽셀 그림은 인터넷에서 받아오지 않고 이 파일 안에 직접 그립니다 -->
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+        <symbol id="desk" viewBox="0 0 64 44" shape-rendering="crispEdges">
+          <rect x="2"  y="12" width="60" height="29" fill="#8a5a2b"/>
+          <rect x="2"  y="12" width="60" height="3"  fill="#a9723a"/>
+          <rect x="2"  y="38" width="60" height="3"  fill="#6b431e"/>
+          <rect x="20" y="26" width="24" height="8"  fill="#e8e8ea"/>
+          <rect x="22" y="28" width="20" height="1"  fill="#b9b9bd"/>
+          <rect x="22" y="31" width="20" height="1"  fill="#b9b9bd"/>
+          <rect x="50" y="20" width="8"  height="9"  fill="#dcdce0"/>
+          <rect x="51" y="21" width="6"  height="3"  fill="var(--screen, #4b7fd4)"/>
+          <rect x="6"  y="20" width="10" height="12" fill="#f4f1e8"/>
+          <rect x="8"  y="23" width="6"  height="1"  fill="#9a968c"/>
+          <rect x="8"  y="26" width="6"  height="1"  fill="#9a968c"/>
+          <rect x="28" y="13" width="8"  height="4"  fill="#4a4a52"/>
+          <rect x="16" y="0"  width="32" height="15" fill="#2f3340"/>
+          <rect x="18" y="2"  width="28" height="11" fill="var(--screen, #4b7fd4)"/>
+          <rect x="20" y="4"  width="14" height="2"  fill="rgba(255,255,255,.55)"/>
+          <rect x="20" y="7"  width="20" height="2"  fill="rgba(255,255,255,.35)"/>
+        </symbol>
+
+        <symbol id="chair" viewBox="0 0 20 16" shape-rendering="crispEdges">
+          <rect x="3"  y="1"  width="14" height="10" fill="#3a3f4c"/>
+          <rect x="3"  y="1"  width="14" height="2"  fill="#565c6c"/>
+          <rect x="2"  y="3"  width="1"  height="7"  fill="#2b2f3a"/>
+          <rect x="17" y="3"  width="1"  height="7"  fill="#2b2f3a"/>
+          <rect x="6"  y="11" width="8"  height="3"  fill="#2b2f3a"/>
+          <rect x="4"  y="14" width="3"  height="2"  fill="#22242c"/>
+          <rect x="13" y="14" width="3"  height="2"  fill="#22242c"/>
+        </symbol>
+
+        <symbol id="plant" viewBox="0 0 20 26" shape-rendering="crispEdges">
+          <rect x="9"  y="6"  width="2"  height="12" fill="#3f7a3a"/>
+          <rect x="3"  y="4"  width="6"  height="3"  fill="#4f9a45"/>
+          <rect x="11" y="6"  width="6"  height="3"  fill="#4f9a45"/>
+          <rect x="5"  y="1"  width="4"  height="3"  fill="#5fb054"/>
+          <rect x="11" y="2"  width="5"  height="3"  fill="#3f7a3a"/>
+          <rect x="4"  y="10" width="5"  height="3"  fill="#4f9a45"/>
+          <rect x="11" y="11" width="5"  height="3"  fill="#5fb054"/>
+          <rect x="5"  y="17" width="10" height="8"  fill="#d8d5cd"/>
+          <rect x="5"  y="17" width="10" height="2"  fill="#efece4"/>
+          <rect x="5"  y="24" width="10" height="1"  fill="#a9a69d"/>
+        </symbol>
+
+        <symbol id="arrow" viewBox="0 0 20 12" shape-rendering="crispEdges">
+          <rect x="0"  y="5" width="12" height="2" fill="#f4f1e8"/>
+          <rect x="12" y="3" width="2"  height="6" fill="#f4f1e8"/>
+          <rect x="14" y="4" width="2"  height="4" fill="#f4f1e8"/>
+          <rect x="16" y="5" width="2"  height="2" fill="#f4f1e8"/>
+        </symbol>
+
+        <symbol id="paper" viewBox="0 0 13 16" shape-rendering="crispEdges">
+          <rect x="0" y="0" width="13" height="16" fill="#2b2b2b"/>
+          <rect x="1" y="1" width="11" height="14" fill="#f7f4ea"/>
+          <rect x="3" y="3" width="7"  height="1"  fill="#8a8377"/>
+          <rect x="3" y="5" width="7"  height="1"  fill="#8a8377"/>
+          <rect x="3" y="7" width="5"  height="1"  fill="#8a8377"/>
+          <rect x="3" y="9" width="7"  height="1"  fill="#8a8377"/>
+          <rect x="3" y="11" width="4" height="1"  fill="#8a8377"/>
+        </symbol>
+
+        <symbol id="crate" viewBox="0 0 24 24" shape-rendering="crispEdges">
+          <rect x="1"  y="6"  width="22" height="17" fill="#8a5a2b"/>
+          <rect x="1"  y="6"  width="22" height="2"  fill="#a9723a"/>
+          <rect x="1"  y="21" width="22" height="2"  fill="#6b431e"/>
+          <rect x="1"  y="13" width="22" height="2"  fill="#6b431e"/>
+          <rect x="11" y="6"  width="2"  height="17" fill="#6b431e"/>
+          <rect x="5"  y="1"  width="14" height="6"  fill="#f7f4ea"/>
+          <rect x="5"  y="1"  width="14" height="1"  fill="#d8d5cd"/>
+          <rect x="7"  y="3"  width="10" height="1"  fill="#9a968c"/>
+        </symbol>
+
+        <symbol id="tray" viewBox="0 0 24 24" shape-rendering="crispEdges">
+          <rect x="2"  y="12" width="20" height="10" fill="#3a3f4c"/>
+          <rect x="2"  y="12" width="20" height="2"  fill="#565c6c"/>
+          <rect x="5"  y="3"  width="14" height="10" fill="#f7f4ea"/>
+          <rect x="5"  y="3"  width="14" height="1"  fill="#d8d5cd"/>
+          <rect x="7"  y="6"  width="10" height="1"  fill="#9a968c"/>
+          <rect x="7"  y="8"  width="10" height="1"  fill="#9a968c"/>
+          <rect x="7"  y="10" width="7"  height="1"  fill="#9a968c"/>
+        </symbol>
+      </defs></svg>
+
+      <div class="wall"></div>
+      <div class="row" id="row"></div>
+
+      <svg class="packet" id="packet" viewBox="0 0 13 16"><use href="#paper"/></svg>
+    </div>
+  </div>
+
+  <div class="log" id="log"><span class="dim">아직 돌리지 않았습니다. "한 바퀴 돌리기"를 누르면 칸마다 받은 것 / 내놓은 것 / 넘어갔는지가 여기에 쌓입니다.</span></div>
+
+  <div class="foot">
+    <p><b>이 화면에 대해</b></p>
+    <ul>
+      <li>명패의 <b>부르는 이름</b>과 카드 맨 아래 <b>판단 기준</b>을 나란히 보세요. 이름이 꼼꼼해서 꼼꼼한 게 아니라, 지시문에 그렇게 적혀 있어서 그렇게 동작합니다.</li>
+      <li>이름·하는 일·맡은 사람은 <code>team.md</code>에서, 판단 기준은 <code>.claude/agents/</code>의 각 정의 파일에서, 받은 것·내놓은 것은 각 칸 폴더의 <code>result.md</code>에서 그대로 가져왔습니다.</li>
+      <li>배지는 두 가지입니다. <b>파일</b>은 그 칸 폴더에 <code>result.md</code>가 있는지(결과 있음 / 아직 없음), <b>진행</b>은 지금 돌리는 흐름이 어디까지 왔는지(대기 중 / 일하는 중 / 완료)입니다. 파일 배지는 단추를 눌러도 바뀌지 않습니다.</li>
+      <li>파일 배지는 <b>화면을 만든 시점에 폴더를 확인한 값</b>입니다. 한 장짜리 화면은 폴더를 직접 못 읽으니, 파일이 생기거나 없어지면 <code>office.html</code> 안 <code>STATIONS</code> 표의 <code>hasResult</code>를 고쳐야 합니다.</li>
+      <li>움직임은 <b>미리 넣어둔 결과를 순서대로 보여주는 것</b>입니다. 이 화면이 담당자를 실제로 부르지는 않습니다.</li>
+      <li>그림은 인터넷에서 받아오지 않고 이 파일 안에 픽셀로 직접 그렸습니다. 인터넷이 없어도 그대로 뜹니다.</li>
+    </ul>
+  </div>
+
+</div>
+
+<script>
+/* ---------------------------------------------------------------
+   칸 정보 - team.md 와 .claude/agents/ 정의 파일에서 옮겨온 것입니다.
+   팀원이 바뀌면 이 표만 고치면 됩니다.
+
+   hasResult : 화면을 만든 시점에 그 칸 폴더를 확인한 값입니다.
+               한 장짜리 화면은 폴더를 직접 못 읽으니 여기에 적어둡니다.
+               결과 파일이 생기거나 없어지면 이 줄을 고쳐주세요.
+   --------------------------------------------------------------- */
+const STATIONS = [
+  {
+    slot: 'collect', nick: '모으미', owner: '최유라',
+    file: 'collect/result.md', hasResult: true,
+    job: '회의록 원문에서 개요와 발언만 골라 모은다',
+    rule: '발언인지 잡담인지 — 안건과 무관하면 버립니다.',
+    screen: '#4b7fd4', hair: '#2f2a24', shirt: '#c94f4f',
+    got:  '회의록 원문 (collect/input-sample.md)',
+    made: '회의 개요 + 발언 묶음 4개 (잡담 3건은 버린 발언으로 뺌)',
+    next: 'summarize 로 넘김'
+  },
+  {
+    slot: 'summarize', nick: '간추리', owner: '최유라',
+    file: 'summarize/result.md', hasResult: true,
+    job: '결정된 것만 골라 핵심 세 줄과 할 일로 줄인다',
+    rule: '결정인지 논의인지 — 결정된 것만 핵심 세 줄에 올립니다.',
+    screen: '#4aa06a', hair: '#6b4a2a', shirt: '#3f7a8c',
+    got:  '회의 개요 + 발언 묶음 4개',
+    made: '핵심 세 줄 + 할 일 5건 (담당자 미정 1건, 기한 없음 1건 그대로 넘김)',
+    next: 'verify 로 넘김'
+  },
+  {
+    slot: 'verify', nick: '꼼꼼이', owner: '최유라',
+    file: 'verify/result.md', hasResult: true,
+    job: '항목마다 통과와 반려를 가른다',
+    rule: '담당자가 없으면 반려 · 기한이 없으면 반려 · 원문에 근거 없는 수치는 반려.',
+    screen: '#c98a3a', hair: '#1f1d1a', shirt: '#5a5f8c',
+    got:  '핵심 세 줄 + 할 일 5건',
+    made: '통과 3건 / 반려 2건 (담당자 미정 1건, 기한 없음 1건)',
+    next: 'report 로 넘김'
+  },
+  {
+    slot: 'report', nick: '마무리', owner: '최유라',
+    file: 'report/result.md', hasResult: true,
+    job: '통과한 것만 모아 보고서를 만든다',
+    rule: '확인된 수치인지 — 미확정 값은 올리지 않습니다.',
+    screen: '#9a5fb0', hair: '#8a4a2a', shirt: '#4a7a4a',
+    got:  '검증 통과 3건',
+    made: '주간 보고서 (결론 + 한 일 2건 + 다음 계획 1건 + 확인 필요 3건)',
+    next: '마지막 칸 - 결과함으로'
+  }
+];
+
+const FINAL = 'report/result.md - 사내 스터디 2기 준비 주간 보고 (2026년 3월 2주)';
+
+/* ---------------- 화면 그리기 ---------------- */
+
+function workerSVG(hair, shirt) {
+  return `<svg class="pixel worker-art" viewBox="0 0 16 22" shape-rendering="crispEdges">
+    <rect x="4"  y="1"  width="8"  height="4" fill="${hair}"/>
+    <rect x="3"  y="2"  width="1"  height="5" fill="${hair}"/>
+    <rect x="12" y="2"  width="1"  height="5" fill="${hair}"/>
+    <rect x="4"  y="5"  width="8"  height="4" fill="#f2c9a0"/>
+    <rect x="5"  y="6"  width="2"  height="2" fill="#2b2b2b"/>
+    <rect x="9"  y="6"  width="2"  height="2" fill="#2b2b2b"/>
+    <rect x="6"  y="9"  width="4"  height="1" fill="#e0b48c"/>
+    <rect x="3"  y="10" width="10" height="7" fill="${shirt}"/>
+    <rect x="7"  y="10" width="2"  height="7" fill="rgba(0,0,0,.15)"/>
+    <g class="arm arm-l"><rect x="1"  y="10" width="2" height="6" fill="${shirt}"/><rect x="1"  y="16" width="2" height="2" fill="#f2c9a0"/></g>
+    <g class="arm arm-r"><rect x="13" y="10" width="2" height="6" fill="${shirt}"/><rect x="13" y="16" width="2" height="2" fill="#f2c9a0"/></g>
+    <rect x="4"  y="17" width="3" height="4" fill="#33405c"/>
+    <rect x="9"  y="17" width="3" height="4" fill="#33405c"/>
+    <rect x="4"  y="21" width="3" height="1" fill="#22242c"/>
+    <rect x="9"  y="21" width="3" height="1" fill="#22242c"/>
+  </svg>`;
+}
+
+const row = document.getElementById('row');
+
+let html = `<div class="bin" id="bin-in">
+    <svg viewBox="0 0 24 24"><use href="#crate"/></svg>
+    <span class="label">재료함</span>
+  </div>`;
+
+STATIONS.forEach((s, i) => {
+  html += `<div class="arrow" data-arrow="${i}"><svg viewBox="0 0 20 12"><use href="#arrow"/></svg></div>`;
+  html += `<div class="station" data-station="${i}" style="--screen-on:${s.screen}">
+    <div class="desk-wrap">
+      <svg class="pixel desk-art" viewBox="0 0 64 44"><use href="#desk"/></svg>
+      <div class="glow"></div>
+    </div>
+    <div class="plate">${s.nick} <span class="state">앉아 있음</span></div>
+    <div class="bubble">일하는 중<span class="dot">...</span></div>
+    <div class="seat">
+      <svg class="chair" viewBox="0 0 20 16"><use href="#chair"/></svg>
+      ${workerSVG(s.hair, s.shirt)}
+    </div>
+    <div class="card">
+      <div class="slot">${s.slot}</div>
+      <div class="job">${s.job}</div>
+      <div class="who">맡은 사람 : ${s.owner}</div>
+      <div class="badges">
+        <span class="tag">파일</span>
+        <span class="file ${s.hasResult ? 'has' : 'none'}">${s.hasResult ? '결과 있음' : '아직 없음'}</span>
+        <span class="fname">${s.file}</span>
+      </div>
+      <div class="badges">
+        <span class="tag">진행</span>
+        <span class="status">대기 중</span>
+      </div>
+      <div class="io"></div>
+      <div class="rule"><b>판단 기준</b><br>${s.rule}</div>
+    </div>
+  </div>`;
+});
+
+html += `<div class="arrow" data-arrow="${STATIONS.length}"><svg viewBox="0 0 20 12"><use href="#arrow"/></svg></div>
+  <div class="bin" id="bin-out">
+    <svg viewBox="0 0 24 24"><use href="#tray"/></svg>
+    <span class="label">결과함</span>
+  </div>`;
+
+row.innerHTML = html;
+
+/* ---------------- 흐름 돌리기 ---------------- */
+
+const office   = document.getElementById('office');
+const packet   = document.getElementById('packet');
+const logBox   = document.getElementById('log');
+const tick     = document.getElementById('tick');
+const runBtn   = document.getElementById('run-btn');
+const resetBtn = document.getElementById('reset-btn');
+const binIn    = document.getElementById('bin-in');
+const binOut   = document.getElementById('bin-out');
+
+const wait = ms => new Promise(r => setTimeout(r, ms));
+const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const T = reduced ? 0.25 : 1;
+
+function moveTo(el, dy) {
+  const a = office.getBoundingClientRect();
+  const b = el.getBoundingClientRect();
+  const x = b.left - a.left + b.width / 2 - packet.clientWidth / 2;
+  const y = b.top  - a.top  + (dy || 0);
+  packet.style.transform = `translate(${x}px, ${y}px)`;
+}
+
+function logLine(cls, text) {
+  const span = document.createElement('span');
+  if (cls) span.className = cls;
+  span.textContent = text + '\n';
+  logBox.appendChild(span);
+  logBox.scrollTop = logBox.scrollHeight;
+}
+
+function reset() {
+  document.querySelectorAll('.station').forEach(st => {
+    st.classList.remove('receive', 'working', 'done');
+    st.querySelector('.plate .state').textContent = '앉아 있음';
+    st.querySelector('.status').textContent = '대기 중';
+    st.querySelector('.io').innerHTML = '';
+  });
+  document.querySelectorAll('.arrow').forEach(a => a.classList.remove('lit'));
+  binOut.classList.remove('filled');
+  binOut.querySelector('.label').textContent = '결과함';
+  packet.style.opacity = 0;
+  logBox.innerHTML = '<span class="dim">아직 돌리지 않았습니다. "한 바퀴 돌리기"를 누르면 칸마다 받은 것 / 내놓은 것 / 넘어갔는지가 여기에 쌓입니다.</span>';
+  tick.textContent = '대기 중 - 모두 자리에 앉아 있고, 재료는 재료함에 있습니다';
+}
+
+async function run() {
+  runBtn.disabled = true;
+  resetBtn.disabled = true;
+  reset();
+  logBox.innerHTML = '';
+  logLine('head', '=== 한 바퀴 돌리기 시작 ===');
+  logLine('dim', '처음 넣을 재료 : collect/input-sample.md');
+  logLine('', '');
+
+  packet.style.transition = 'none';
+  moveTo(binIn, 6);
+  await wait(30);
+  packet.style.transition = reduced ? 'none' : 'transform .85s ease-in-out, opacity .25s';
+  packet.style.opacity = 1;
+  await wait(400 * T);
+
+  for (let i = 0; i < STATIONS.length; i++) {
+    const s  = STATIONS[i];
+    const st = document.querySelector(`.station[data-station="${i}"]`);
+    const io = st.querySelector('.io');
+
+    document.querySelector(`.arrow[data-arrow="${i}"]`).classList.add('lit');
+    tick.textContent = `${i + 1}/${STATIONS.length} - ${s.nick}(${s.slot}) 자리로 넘기는 중`;
+    moveTo(st.querySelector('.desk-wrap'), 30);
+    await wait(900 * T);
+
+    // 서류가 도착하면 앉아 있던 담당자가 자세를 세웁니다
+    st.classList.add('receive');
+    st.querySelector('.plate .state').textContent = '받는 중';
+    await wait(450 * T);
+    st.classList.remove('receive');
+
+    st.classList.add('working');
+    st.querySelector('.plate .state').textContent = '일하는 중';
+    st.querySelector('.status').textContent = '일하는 중';
+    io.innerHTML = `<b>받은 것</b> : ${s.got}`;
+    tick.textContent = `${i + 1}/${STATIONS.length} - ${s.nick}(${s.slot}) 일하는 중`;
+
+    logLine('head', `[${i + 1}/${STATIONS.length}] ${s.slot} (${s.nick})`);
+    logLine('', `   받은 것   : ${s.got}`);
+    await wait(1700 * T);
+
+    st.classList.remove('working');
+    st.classList.add('done');
+    st.querySelector('.plate .state').textContent = '완료';
+    st.querySelector('.status').textContent = '완료';
+    io.innerHTML = `<b>받은 것</b> : ${s.got}<br><b>내놓은 것</b> : ${s.made}`;
+
+    logLine('', `   내놓은 것 : ${s.made}`);
+    logLine('', `   넘어감    : ${s.next}`);
+    logLine('', '');
+    await wait(350 * T);
+  }
+
+  document.querySelector(`.arrow[data-arrow="${STATIONS.length}"]`).classList.add('lit');
+  moveTo(binOut, 8);
+  await wait(900 * T);
+  binOut.classList.add('filled');
+  binOut.querySelector('.label').textContent = '결과 도착';
+  packet.style.opacity = 0;
+
+  logLine('fin', '=== 마지막 칸까지 흘러감 ===');
+  logLine('fin', `최종 결과 : ${FINAL}`);
+  tick.textContent = '끝까지 흘러감 - 이 화면을 캡처하세요';
+
+  runBtn.disabled = false;
+  resetBtn.disabled = false;
+}
+
+runBtn.addEventListener('click', run);
+resetBtn.addEventListener('click', reset);
+window.addEventListener('resize', () => { packet.style.opacity = 0; });
+</script>
+</body>
+</html>

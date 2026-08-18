@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>회의록 요약 담당</title>
+<style>
+  :root { color-scheme: light; }
+  body {
+    margin: 0; padding: 40px 20px 80px;
+    background: #ffffff; color: #111111;
+    font-family: "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+    font-size: 17px; line-height: 1.7;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  .notice { border: 1px solid #999999; padding: 12px 16px; margin-bottom: 32px; font-size: 15px; color: #333333; }
+  h1 { font-size: 28px; margin: 0 0 8px; font-weight: 700; }
+  .sub { margin: 0 0 36px; color: #555555; font-size: 15px; }
+  .block { border-top: 1px solid #dddddd; padding-top: 28px; margin-top: 28px; }
+  .block:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  label { display: block; font-weight: 700; margin-bottom: 10px; }
+  .hint { color: #666666; font-size: 14px; font-weight: 400; }
+  textarea {
+    width: 100%; box-sizing: border-box; min-height: 180px; padding: 12px;
+    border: 1px solid #999999; background: #ffffff; color: #111111;
+    font-family: inherit; font-size: 16px; line-height: 1.6; resize: vertical;
+  }
+  button {
+    margin-top: 16px; padding: 12px 28px; border: 1px solid #111111;
+    background: #111111; color: #ffffff; font-family: inherit; font-size: 17px; cursor: pointer;
+  }
+  button:hover { background: #333333; }
+  #result-area { display: none; }
+  #result-area h2 { font-size: 20px; margin: 0 0 16px; }
+  #result-body { border: 1px solid #dddddd; padding: 20px 24px; }
+  #result-body h1 { font-size: 22px; margin: 0 0 16px; }
+  #result-body h2 { font-size: 18px; margin: 28px 0 10px; }
+  #result-body h2:first-child { margin-top: 0; }
+  #result-body ol, #result-body ul { padding-left: 22px; }
+  #result-body hr { border: none; border-top: 1px solid #dddddd; margin: 24px 0; }
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; font-size: 15px; }
+  th, td { border: 1px solid #cccccc; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f4f4f4; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="notice">연습용 화면 - 아직 실제로 처리하지 않고, 미리 넣어둔 결과를 보여줍니다.</p>
+
+  <h1>회의록 요약 담당</h1>
+  <p class="sub">정리된 발언 묶음을 핵심 세 줄과 할 일 목록으로 줄입니다.</p>
+
+  <div class="block">
+    <label for="input-box">
+      회의 개요와 발언 묶음 목록
+      <span class="hint">— 수집 칸 결과를 그대로 붙여넣으세요.</span>
+    </label>
+    <textarea id="input-box" placeholder="예) 회의 개요 ...&#10;묶음 1. ...&#10;- [담당자A] ..."></textarea>
+    <button id="run-btn" type="button">요약하기</button>
+  </div>
+
+  <div class="block" id="result-area">
+    <h2>요약 결과</h2>
+    <div id="result-body">
+
+      <h1>요약 결과 - 사내 스터디 운영 회의</h1>
+
+      <h2>핵심 세 줄</h2>
+      <ol>
+        <li>1기 후반부 참여율이 떨어진 점을 반영해 스터디 모임 주기를 <strong>격주로 조정</strong>하기로 결정했습니다.</li>
+        <li>2기 모집 공지는 <strong>사내 게시판과 팀 대화방 두 곳</strong>에 올리기로 결정했습니다.</li>
+        <li>교재 선정과 발표 순서는 결론이 나지 않아 <strong>다음 회의로 넘겼습니다.</strong></li>
+      </ol>
+
+      <h2>할 일 목록</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>담당자</th><th>할 일</th><th>기한</th></tr></thead>
+          <tbody>
+            <tr><td>[담당자A]</td><td>2기 모집 공지문 초안 작성</td><td>3월 6일</td></tr>
+            <tr><td>[담당자B]</td><td>사내 게시판·팀 대화방 공지 게시</td><td>3월 9일</td></tr>
+            <tr><td>미정</td><td>스터디 교재 후보 3종 정리</td><td>3월 10일</td></tr>
+            <tr><td>[담당자C]</td><td>격주 모임 일정표 공유</td><td>빠른 시일 내</td></tr>
+            <tr><td>[담당자A]</td><td>1기 참여율 집계표 정리</td><td>3월 13일</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>논의만 하고 결정 안 된 것</h2>
+      <ul>
+        <li>스터디 교재 선정 (후보만 언급, 확정 전)</li>
+        <li>발표 순서 (다음 회의로 넘김)</li>
+        <li>교재 후보 정리 담당자 (다음에 정하기로 함)</li>
+      </ul>
+
+      <hr>
+      <p>작성자: 최유라</p>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.getElementById('run-btn').addEventListener('click', function () {
+    var area = document.getElementById('result-area');
+    area.style.display = 'block';
+    area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+</script>
+</body>
+</html>

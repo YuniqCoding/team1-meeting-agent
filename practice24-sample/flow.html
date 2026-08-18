@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>실습 24 · 엔드투엔드 흐름 샘플</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#172033;font-family:"Malgun Gothic",sans-serif}.wrap{width:1440px;min-height:900px;margin:auto;padding:38px 42px}.top{display:flex;justify-content:space-between;align-items:end;margin-bottom:26px}h1{font-size:32px;margin:6px 0}.eyebrow{color:#3764d8;font-weight:800}.source{background:#fff;border:1px solid #d9e1ef;border-radius:12px;padding:14px 18px;max-width:480px}.pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:34px}.card{position:relative;background:#fff;border:2px solid #dbe3f1;border-radius:18px;min-height:550px;padding:24px;box-shadow:0 8px 24px #24385b12}.card:not(:last-child):after{content:"→";position:absolute;right:-31px;top:255px;color:#7690bf;font-size:30px;font-weight:900}.num{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:50%;background:#315fd4;color:white;font-weight:800}.stage{font-size:25px;font-weight:900;margin:14px 0 4px}.role{color:#65718a;margin-bottom:22px}.label{font-size:13px;color:#68758c;font-weight:800;text-transform:uppercase;margin-top:18px}.box{background:#f6f8fc;border-left:4px solid #8ca6db;padding:12px 14px;margin-top:7px;line-height:1.55}.out{border-left-color:#35a46f;background:#f1fbf6}.status{margin-top:22px;color:#16804e;font-weight:900}.warning{color:#a15d00}.bottom{display:flex;justify-content:space-between;margin-top:24px;padding:18px 22px;background:#172033;color:white;border-radius:14px}.only .card{display:none}.only .card.selected{display:block;grid-column:2/4;min-height:650px}.only .card.selected:after{display:none}.only .pipeline{grid-template-columns:repeat(4,1fr)}.only .bottom{display:none}.only .top{margin-bottom:35px}.only .card .stage{font-size:34px}.only .card .box{font-size:18px;padding:18px}.only .card .status{font-size:20px}
+</style>
+</head>
+<body><main class="wrap">
+<header class="top"><div><div class="eyebrow">연습용 화면 · 실제 가짜 재료로 재현</div><h1>주간보고 파이프라인 — 처음부터 끝까지</h1></div><div class="source"><b>처음 넣은 재료</b><br>inputs/6_report_material.txt<br><small>실제 회사 자료가 아닌 강의용 가짜 데이터</small></div></header>
+<section class="pipeline">
+<article class="card" data-stage="collect"><span class="num">1</span><div class="stage">collect</div><div class="role">흩어진 메모에서 사실 수집</div><div class="label">받은 것</div><div class="box">월~금 진행상황 메모<br>장애·지표·다음 주 예정 포함</div><div class="label">내놓은 것</div><div class="box out">업무 사실 7묶음<br>장애 1건 · 다음 주 할 일 4건</div><div class="label">실제 내용 예</div><div class="box">결제 장애 약 20분<br>가입 개선 QA 통과<br>검색 수치는 집계 전</div><div class="status">✓ refine으로 넘어감</div></article>
+<article class="card" data-stage="refine"><span class="num">2</span><div class="stage">refine</div><div class="role">보고 순서와 중요도로 정리</div><div class="label">받은 것</div><div class="box">collect/result.md<br>수집된 사실 7묶음</div><div class="label">내놓은 것</div><div class="box out">최우선 / 완료·진행 / 다음 주<br>3개 구역으로 재구성</div><div class="label">실제 내용 예</div><div class="box">장애를 최상단으로 이동<br>완료와 예정 분리<br>중복 표현 제거</div><div class="status">✓ verify로 넘어감</div></article>
+<article class="card" data-stage="verify"><span class="num">3</span><div class="stage">verify</div><div class="role">원문과 표현을 대조</div><div class="label">받은 것</div><div class="box">원문 + refine/result.md<br>정리본의 모든 핵심 주장</div><div class="label">내놓은 것</div><div class="box out">통과 4건 · 조건부 통과 2건<br>최종 작성 주의 2개</div><div class="label">실제 내용 예</div><div class="box warning">검색은 정량 수치 집계 전<br>푸시 B안은 표본 부족<br>→ 단정 표현 금지</div><div class="status">✓ merge로 넘어감</div></article>
+<article class="card" data-stage="merge"><span class="num">4</span><div class="stage">merge</div><div class="role">검증된 내용만 최종 조립</div><div class="label">받은 것</div><div class="box">verify/result.md<br>통과 사실과 유보 조건</div><div class="label">내놓은 것</div><div class="box out">merge/final.md<br>긴급 사항 + 핵심 3줄 + 할 일</div><div class="label">최종 결과</div><div class="box">장애 조치 명시<br>검색·푸시는 유보 표현 유지<br>다음 주 할 일 4건</div><div class="status">✓ 최종 출력 완료</div></article>
+</section>
+<footer class="bottom"><span>모든 칸을 거쳤는가: <b>예</b></span><span>앞 칸 결과를 실제로 썼는가: <b>예</b></span><span>막힌 점: <b>끝까지 흘러감</b></span></footer>
+</main>
+<script>const s=new URLSearchParams(location.search).get('stage');if(s){document.body.classList.add('only');const c=document.querySelector(`[data-stage="${s}"]`);if(c)c.classList.add('selected')}</script>
+</body></html>
