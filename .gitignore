@@ -7,3 +7,6 @@
 
 # browser automation artifacts
 .playwright-mcp/
+
+# node
+node_modules/

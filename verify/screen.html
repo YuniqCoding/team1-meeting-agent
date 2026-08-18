@@ -73,12 +73,23 @@
   table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; font-size: 15px; }
   th, td { border: 1px solid #cccccc; padding: 8px 10px; text-align: left; vertical-align: top; }
   th { background: #f4f4f4; font-weight: 700; }
+  #status { display: none; margin: 16px 0 0; font-size: 15px; color: #555555; }
+  #status.on { display: block; }
+  #status.error { color: #b00020; }
+  #result-body p { margin: 0 0 12px; }
+  #result-body h3 { font-size: 16px; margin: 20px 0 8px; }
+  #result-body blockquote {
+    margin: 16px 0; padding: 8px 14px;
+    border-left: 3px solid #cccccc; color: #555555;
+  }
+  #result-body code { background: #f4f4f4; padding: 1px 5px; font-size: 15px; }
+  button[disabled] { background: #999999; cursor: default; }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <p class="notice">연습용 화면 - 아직 실제로 처리하지 않고, 미리 넣어둔 결과를 보여줍니다.</p>
+  <p class="notice">실제로 담당자를 부릅니다.</p>
 
   <h1>회의록 검증 담당</h1>
   <p class="sub">회의록 요약과 할 일 목록이 원문과 맞는지 확인합니다.</p>
@@ -92,52 +103,153 @@
     <button id="run-btn" type="button">확인하기</button>
   </div>
 
+  <p id="status" role="status"></p>
+
   <div class="block" id="result-area">
     <h2>검증 결과</h2>
-    <div id="result-body">
-
-      <h1>검증 결과 - 사내 스터디 운영 회의 요약</h1>
-
-      <h2>판정 요약</h2>
-      <ul>
-        <li>전체 5건 중 <strong>통과 3건 / 반려 2건</strong></li>
-      </ul>
-
-      <h2>항목별 판정</h2>
-      <div class="table-scroll">
-        <table>
-          <thead>
-            <tr><th>항목</th><th>판정</th><th>이유</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>2기 모집 공지문 초안 작성</td><td>통과</td><td>-</td></tr>
-            <tr><td>사내 게시판·팀 대화방 공지 게시</td><td>통과</td><td>-</td></tr>
-            <tr><td>스터디 교재 후보 3종 정리</td><td>반려</td><td>담당자가 "미정"으로 비어 있어 실행 주체를 알 수 없음</td></tr>
-            <tr><td>격주 모임 일정표 공유</td><td>반려</td><td>기한이 "빠른 시일 내"로 날짜를 셀 수 없음</td></tr>
-            <tr><td>1기 참여율 집계표 정리</td><td>통과</td><td>-</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h2>미정 항목</h2>
-      <ul>
-        <li>스터디 교재 선정 (재료에 결론 없음 - "다음 회의로 넘김")</li>
-        <li>발표 순서 (재료에 결론 없음 - "다음 회의로 넘김")</li>
-      </ul>
-
-      <hr>
-      <p>작성자: 최유라</p>
-
-    </div>
+    <div id="result-body"></div>
   </div>
 
 </div>
 
 <script>
-  document.getElementById('run-btn').addEventListener('click', function () {
-    var area = document.getElementById('result-area');
-    area.style.display = 'block';
-    area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  var btn = document.getElementById('run-btn');
+  var input = document.getElementById('input-box');
+  var statusEl = document.getElementById('status');
+  var area = document.getElementById('result-area');
+  var body = document.getElementById('result-body');
+
+  function say(message, isError) {
+    statusEl.textContent = message;
+    statusEl.className = message ? (isError ? 'on error' : 'on') : '';
+  }
+
+  function escapeHtml(text) {
+    return text.replace(/[&<>"]/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch];
+    });
+  }
+
+  // **굵게** 와 `코드` 만 다룬다.
+  function inline(text) {
+    return escapeHtml(text)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>');
+  }
+
+  function tableCells(line) {
+    return line.replace(/^\s*\|/, '').replace(/\|\s*$/, '').split('|').map(function (cell) {
+      return cell.trim();
+    });
+  }
+
+  /** 담당자가 돌려준 마크다운을 화면용 표·제목·목록으로 바꾼다. */
+  function renderMarkdown(md) {
+    var lines = String(md).replace(/\r\n/g, '\n').split('\n');
+    var out = [];
+    var i = 0;
+
+    function isTableLine(line) { return /^\s*\|.*\|\s*$/.test(line); }
+    function isDivider(line) { return /^\s*\|[\s:|-]+\|\s*$/.test(line); }
+
+    while (i < lines.length) {
+      var line = lines[i];
+      if (!line.trim()) { i++; continue; }
+
+      // 표: 머리줄 + 구분줄 + 본문줄들
+      if (isTableLine(line) && i + 1 < lines.length && isDivider(lines[i + 1])) {
+        var head = tableCells(line);
+        i += 2;
+        var rows = [];
+        while (i < lines.length && isTableLine(lines[i])) { rows.push(tableCells(lines[i])); i++; }
+        out.push(
+          '<div class="table-scroll"><table><thead><tr>' +
+          head.map(function (c) { return '<th>' + inline(c) + '</th>'; }).join('') +
+          '</tr></thead><tbody>' +
+          rows.map(function (r) {
+            return '<tr>' + r.map(function (c) { return '<td>' + inline(c) + '</td>'; }).join('') + '</tr>';
+          }).join('') +
+          '</tbody></table></div>'
+        );
+        continue;
+      }
+
+      // 가로줄
+      if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) { out.push('<hr>'); i++; continue; }
+
+      // 제목
+      var heading = line.match(/^\s*(#{1,4})\s+(.*)$/);
+      if (heading) {
+        var level = Math.min(heading[1].length, 3);
+        out.push('<h' + level + '>' + inline(heading[2].trim()) + '</h' + level + '>');
+        i++;
+        continue;
+      }
+
+      // 목록 (- 또는 1.)
+      if (/^\s*([-*+]|\d+\.)\s+/.test(line)) {
+        var ordered = /^\s*\d+\.\s+/.test(line);
+        var items = [];
+        while (i < lines.length && /^\s*([-*+]|\d+\.)\s+/.test(lines[i])) {
+          items.push('<li>' + inline(lines[i].replace(/^\s*([-*+]|\d+\.)\s+/, '')) + '</li>');
+          i++;
+        }
+        out.push((ordered ? '<ol>' : '<ul>') + items.join('') + (ordered ? '</ol>' : '</ul>'));
+        continue;
+      }
+
+      // 인용
+      if (/^\s*>\s?/.test(line)) {
+        var quote = [];
+        while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
+          quote.push(inline(lines[i].replace(/^\s*>\s?/, '')));
+          i++;
+        }
+        out.push('<blockquote>' + quote.join('<br>') + '</blockquote>');
+        continue;
+      }
+
+      // 그 밖은 문단
+      var para = [];
+      while (i < lines.length && lines[i].trim() && !/^\s*(#|>|\||[-*+]\s|\d+\.\s)/.test(lines[i])) {
+        para.push(inline(lines[i].trim()));
+        i++;
+      }
+      if (para.length) out.push('<p>' + para.join('<br>') + '</p>');
+      else i++;
+    }
+
+    return out.join('\n');
+  }
+
+  btn.addEventListener('click', async function () {
+    var text = input.value.trim();
+    if (!text) { say('확인할 글을 먼저 넣어주세요.', true); return; }
+
+    btn.disabled = true;
+    area.style.display = 'none';
+    body.textContent = '';
+    say('부르는 중...');
+
+    try {
+      // 열쇠는 call-agent 쪽에서만 씁니다. 이 화면은 글만 넘깁니다.
+      var res = await fetch('/api/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: text })
+      });
+      var data = await res.json();
+      if (!res.ok) throw new Error(data.error || ('요청 실패 (' + res.status + ')'));
+
+      body.innerHTML = renderMarkdown(data.result);
+      area.style.display = 'block';
+      say('');
+      area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch (err) {
+      say('부르지 못했습니다 - ' + err.message, true);
+    } finally {
+      btn.disabled = false;
+    }
   });
 </script>
 </body>
