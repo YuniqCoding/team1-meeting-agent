@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>회의록 수집 담당</title>
+<style>
+  :root { color-scheme: light; }
+  body {
+    margin: 0; padding: 40px 20px 80px;
+    background: #ffffff; color: #111111;
+    font-family: "Malgun Gothic", "맑은 고딕", system-ui, sans-serif;
+    font-size: 17px; line-height: 1.7;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  .notice { border: 1px solid #999999; padding: 12px 16px; margin-bottom: 32px; font-size: 15px; color: #333333; }
+  h1 { font-size: 28px; margin: 0 0 8px; font-weight: 700; }
+  .sub { margin: 0 0 36px; color: #555555; font-size: 15px; }
+  .block { border-top: 1px solid #dddddd; padding-top: 28px; margin-top: 28px; }
+  .block:first-of-type { border-top: none; padding-top: 0; margin-top: 0; }
+  label { display: block; font-weight: 700; margin-bottom: 10px; }
+  .hint { color: #666666; font-size: 14px; font-weight: 400; }
+  textarea {
+    width: 100%; box-sizing: border-box; min-height: 180px; padding: 12px;
+    border: 1px solid #999999; background: #ffffff; color: #111111;
+    font-family: inherit; font-size: 16px; line-height: 1.6; resize: vertical;
+  }
+  button {
+    margin-top: 16px; padding: 12px 28px; border: 1px solid #111111;
+    background: #111111; color: #ffffff; font-family: inherit; font-size: 17px; cursor: pointer;
+  }
+  button:hover { background: #333333; }
+  #result-area { display: none; }
+  #result-area h2 { font-size: 20px; margin: 0 0 16px; }
+  #result-body { border: 1px solid #dddddd; padding: 20px 24px; }
+  #result-body h1 { font-size: 22px; margin: 0 0 16px; }
+  #result-body h2 { font-size: 18px; margin: 28px 0 10px; }
+  #result-body h2:first-child { margin-top: 0; }
+  #result-body h3 { font-size: 16px; margin: 20px 0 6px; }
+  #result-body ol, #result-body ul { padding-left: 22px; }
+  #result-body hr { border: none; border-top: 1px solid #dddddd; margin: 24px 0; }
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; margin: 12px 0 20px; font-size: 15px; }
+  th, td { border: 1px solid #cccccc; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f4f4f4; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="notice">연습용 화면 - 아직 실제로 처리하지 않고, 미리 넣어둔 결과를 보여줍니다.</p>
+
+  <h1>회의록 수집 담당</h1>
+  <p class="sub">회의록 원문에서 회의 개요와 안건별 발언을 정리합니다.</p>
+
+  <div class="block">
+    <label for="input-box">
+      회의록 원문
+      <span class="hint">— 받아 적은 메모를 그대로 붙여넣으세요.</span>
+    </label>
+    <textarea id="input-box" placeholder="예) 일시 ...&#10;참석 ...&#10;[담당자A] ..."></textarea>
+    <button id="run-btn" type="button">정리하기</button>
+  </div>
+
+  <div class="block" id="result-area">
+    <h2>수집 결과</h2>
+    <div id="result-body">
+
+      <h1>수집 결과 - 사내 스터디 운영 회의</h1>
+
+      <h2>회의 개요</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>항목</th><th>내용</th></tr></thead>
+          <tbody>
+            <tr><td>일시</td><td>2026년 3월 4일(수) 15:00~15:40</td></tr>
+            <tr><td>장소</td><td>3층 소회의실</td></tr>
+            <tr><td>참석자</td><td>[담당자A], [담당자B], [담당자C], [담당자D]</td></tr>
+            <tr><td>안건</td><td>1) 2기 모집 방식 2) 스터디 운영 주기</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>발언 묶음 목록</h2>
+
+      <h3>묶음 1. 스터디 운영 주기</h3>
+      <ul>
+        <li>[담당자C] 1기 후반부 참여율이 눈에 띄게 떨어졌음</li>
+        <li>[담당자B] 매주는 부담스럽다는 의견이 여러 번 나왔음 - 격주 제안</li>
+        <li>[담당자D] 격주면 준비 시간이 늘어 발표 질도 올라갈 것으로 봄</li>
+        <li>[담당자A] 격주로 하기로 결정</li>
+      </ul>
+
+      <h3>묶음 2. 2기 모집 공지 경로</h3>
+      <ul>
+        <li>[담당자D] 지난번엔 게시판만 써서 못 본 사람이 많았음</li>
+        <li>[담당자B] 게시판과 팀 대화방 두 곳에 올리자고 제안</li>
+        <li>[담당자A] 두 곳 다 올리기로 결정</li>
+        <li>[담당자A] 공지문 초안을 3월 6일까지 작성하기로 함</li>
+        <li>[담당자B] 공지 게시를 3월 9일까지 맡기로 함</li>
+      </ul>
+
+      <h3>묶음 3. 교재 선정·발표 순서</h3>
+      <ul>
+        <li>[담당자C] 교재 후보가 몇 개 있으나 확정 전임</li>
+        <li>[담당자D] 3월 10일까지 후보 3종으로 추려두자고 제안</li>
+        <li>[담당자A] 후보 정리 담당은 다음에 정하기로 함</li>
+        <li>[담당자A] 교재 선정과 발표 순서는 다음 회의로 넘김</li>
+      </ul>
+
+      <h3>묶음 4. 기타 정리 사항</h3>
+      <ul>
+        <li>[담당자C] 격주 일정표를 정리해 공유하기로 함 (시점 언급 없음)</li>
+        <li>[담당자A] 1기 참여율 집계표를 3월 13일까지 정리하기로 함</li>
+      </ul>
+
+      <h2>버린 발언</h2>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>버린 내용</th><th>이유</th></tr></thead>
+          <tbody>
+            <tr><td>1층 샌드위치집 대기 시간 이야기 (2건)</td><td>안건과 무관한 회의 전 잡담</td></tr>
+            <tr><td>다음 주 회식 장소 문의 (1건)</td><td>안건과 무관 - "따로 얘기하자"로 종료됨</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <hr>
+      <p>작성자: 최유라</p>
+
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.getElementById('run-btn').addEventListener('click', function () {
+    var area = document.getElementById('result-area');
+    area.style.display = 'block';
+    area.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+</script>
+</body>
+</html>

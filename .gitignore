@@ -1,0 +1,9 @@
+# secrets
+.env
+
+# local machine settings / vendored tooling (not team-shared)
+.claude/settings.local.json
+.claude/skills/
+
+# browser automation artifacts
+.playwright-mcp/
