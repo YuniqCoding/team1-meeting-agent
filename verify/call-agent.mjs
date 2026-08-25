@@ -90,15 +90,26 @@ export async function callVerifyAgent(incomingText) {
   if (message.stop_reason === "refusal") {
     throw new Error(`담당자가 처리를 거절했습니다: ${message.stop_details?.explanation ?? ""}`);
   }
-  return message.content
+  const answer = message.content
     .filter((block) => block.type === "text")
     .map((block) => block.text)
     .join("")
     .trim();
+
+  // 이번에 얼마나 썼는지: 글자 수와, API 가 알려준 토큰 수
+  return {
+    text: answer,
+    usage: {
+      inChars: text.length,
+      outChars: answer.length,
+      inTokens: message.usage?.input_tokens ?? null,
+      outTokens: message.usage?.output_tokens ?? null,
+    },
+  };
 }
 
 /**
- * screen.html 을 띄우는 자리.
+ * index.html 을 띄우는 자리.
  * 화면은 글만 보내고, 열쇠는 이 파일(서버 쪽)에서만 쓴다.
  */
 function serve(port) {
@@ -108,8 +119,8 @@ function serve(port) {
       res.end(payload);
     };
 
-    if (req.method === "GET" && (req.url === "/" || req.url === "/screen.html")) {
-      return send(200, "text/html; charset=utf-8", fs.readFileSync(path.join(HERE, "screen.html")));
+    if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
+      return send(200, "text/html; charset=utf-8", fs.readFileSync(path.join(HERE, "index.html")));
     }
 
     if (req.method === "POST" && req.url === "/api/verify") {
@@ -117,8 +128,8 @@ function serve(port) {
       for await (const chunk of req) chunks.push(chunk);
       try {
         const { text } = JSON.parse(Buffer.concat(chunks).toString("utf8"));
-        const result = await callVerifyAgent(text);
-        return send(200, "application/json; charset=utf-8", JSON.stringify({ result }));
+        const { text: result, usage } = await callVerifyAgent(text);
+        return send(200, "application/json; charset=utf-8", JSON.stringify({ result, usage }));
       } catch (err) {
         return send(500, "application/json; charset=utf-8", JSON.stringify({ error: err.message }));
       }
@@ -138,7 +149,13 @@ if (import.meta.url === `file://${process.argv[1]}` || process.argv[1] === fileU
     if (process.argv.includes("--serve")) {
       serve(Number(process.env.PORT) || 8787);
     } else {
-      process.stdout.write(await callVerifyAgent(await readIncomingText()) + "\n");
+      const { text, usage } = await callVerifyAgent(await readIncomingText());
+      process.stdout.write(text + "\n");
+      // 쓴 양은 결과와 섞이지 않게 따로 알린다.
+      process.stderr.write(
+        `[call-agent] 넣은 글 ${usage.inChars}자 / 받은 글 ${usage.outChars}자` +
+          (usage.inTokens ? ` (토큰 ${usage.inTokens} → ${usage.outTokens})` : "") + "\n",
+      );
     }
   } catch (err) {
     process.stderr.write(`[call-agent] ${err.message}\n`);

@@ -12,7 +12,7 @@ collect(수집) → summarize(요약) → verify(검증) → report(보고)
 | --- | --- | --- | --- | --- |
 | 수집 | [collect/](../collect/) | [.claude/agents/collect.md](../.claude/agents/collect.md) | [agent-spec-collect.md](agent-spec-collect.md) | [collect/screen.html](../collect/screen.html) |
 | 요약 | [summarize/](../summarize/) | [.claude/agents/summarize.md](../.claude/agents/summarize.md) | [agent-spec-summarize.md](agent-spec-summarize.md) | [summarize/screen.html](../summarize/screen.html) |
-| 검증 | [verify/](../verify/) | [.claude/agents/verify.md](../.claude/agents/verify.md) | [agent-spec-verify.md](agent-spec-verify.md) | [verify/screen.html](../verify/screen.html) |
+| 검증 | [verify/](../verify/) | [.claude/agents/verify.md](../.claude/agents/verify.md) | [agent-spec-verify.md](agent-spec-verify.md) | [verify/index.html](../verify/index.html) |
 | 보고 | [report/](../report/) | [.claude/agents/report.md](../.claude/agents/report.md) | [agent-spec-report.md](agent-spec-report.md) | [report/screen.html](../report/screen.html) |
 
 ## 칸 폴더 안에 들어 있는 것 (4칸 모두 같음)
